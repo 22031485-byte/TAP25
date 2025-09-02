@@ -1,69 +1,91 @@
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Practica1Cajero {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        String[] usuarios = {"1234", "5678"};
-        String[] nombres = {"Juan", "Maria"};
-        double[] saldos = {1000.0, 2500.0};
+
+
+        ArrayList<Cliente> clientes = new ArrayList<>();
+        clientes.add(new Cliente("1234", "Juan", 1000.0));
+        clientes.add(new Cliente("5678", "Maria", 2500.0));
+
         int intentos = 0;
-        boolean salir = false;
-        int usuarioActual = -1;
+        Cliente clienteActual = null;
 
-        System.out.println("=== Bienvenido al Cajero ===");
 
-        while (intentos < 3 && usuarioActual == -1) {
+        System.out.println(" Bienvenido al Cajero ");
+
+        while (intentos < 3 && clienteActual == null) {
             System.out.print("Ingrese su PIN: ");
             String pin = scanner.nextLine();
-            for (int i = 0; i < usuarios.length; i++) {
-                if (usuarios[i].equals(pin)) {
-                    usuarioActual = i;
+
+            for (Cliente c : clientes) {
+                if (c.getPin().equals(pin)) {
+                    clienteActual = c;
                     break;
                 }
             }
-            if (usuarioActual == -1) {
+
+            if (clienteActual == null) {
                 System.out.println("PIN incorrecto.");
                 intentos++;
             }
         }
 
-        if (usuarioActual == -1) {
+        if (clienteActual == null) {
             System.out.println("Demasiados intentos fallidos. Adiós.");
             return;
         }
 
-        System.out.println("Bienvenido, " + nombres[usuarioActual]);
+        Cajero cajero = new Cajero(clienteActual);
+        System.out.println("Bienvenido, " + cajero.getNombre());
 
+        boolean salir = false;
         while (!salir) {
             System.out.println("\n1. Ver saldo");
             System.out.println("2. Retirar dinero");
             System.out.println("3. Depositar dinero");
             System.out.println("4. Salir");
             System.out.print("Seleccione una opción: ");
-            int opcion = scanner.nextInt();
-            scanner.nextLine(); // limpiar buffer
 
-            if (opcion == 1) {
-                System.out.println("Su saldo es: $" + saldos[usuarioActual]);
-            } else if (opcion == 2) {
-                System.out.print("Ingrese cantidad a retirar: ");
-                double retiro = scanner.nextDouble();
-                if (retiro <= saldos[usuarioActual]) {
-                    saldos[usuarioActual] -= retiro;
-                    System.out.println("Retiro exitoso. Nuevo saldo: $" + saldos[usuarioActual]);
-                } else {
-                    System.out.println("Fondos insuficientes.");
-                }
-            } else if (opcion == 3) {
-                System.out.print("Ingrese cantidad a depositar: ");
-                double deposito = scanner.nextDouble();
-                saldos[usuarioActual] += deposito;
-                System.out.println("Depósito exitoso. Nuevo saldo: $" + saldos[usuarioActual]);
-            } else if (opcion == 4) {
-                salir = true;
-                System.out.println("Gracias por usar el cajero.");
-            } else {
-                System.out.println("Opción inválida.");
+            int opcion;
+            try {
+                opcion = Integer.parseInt(scanner.nextLine());
+            } catch (NumberFormatException e) {
+                System.out.println("Entrada inválida. Por favor ingrese un número.");
+                continue;
+            }
+
+            switch (opcion) {
+                case 1:
+                    cajero.verSaldo();
+                    break;
+                case 2:
+                    System.out.print("Ingrese cantidad a retirar: ");
+                    try {
+                        double retiro = Double.parseDouble(scanner.nextLine());
+                        cajero.retirar(retiro);
+                    } catch (NumberFormatException e) {
+                        System.out.println("Cantidad inválida. Por favor ingrese un número válido.");
+                    }
+                    break;
+                case 3:
+                    System.out.print("Ingrese cantidad a depositar: ");
+                    try {
+                        double deposito = Double.parseDouble(scanner.nextLine());
+                        cajero.depositar(deposito);
+                    } catch (NumberFormatException e) {
+                        System.out.println("Cantidad inválida. Por favor ingrese un número válido.");
+                    }
+                    break;
+                case 4:
+                    salir = true;
+                    System.out.println("Gracias por usar el cajero.");
+                    break;
+                default:
+                    System.out.println("Opción inválida.");
+                    break;
             }
         }
     }
