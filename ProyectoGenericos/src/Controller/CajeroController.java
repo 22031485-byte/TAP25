@@ -3,17 +3,6 @@ package Controller;
 import Models.CajeroModel;
 import Views.CajeroView;
 
-/**
- * Controlador principal del cajero automático.
- * Gestiona la interacción entre la Vista y el Modelo: autenticación de usuarios,
- * menú principal y ejecución de operaciones (consultar saldo, retirar, depositar,
- * transferir, cambiar PIN y cerrar el sistema).
- *
- * @author Leonardo
- * @version 1.0
- * @since 2025-09-04
- */
-
 public class CajeroController {
    private CajeroModel model;
    private CajeroView view;

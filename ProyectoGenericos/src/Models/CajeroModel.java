@@ -17,8 +17,8 @@ import java.util.Map;
  */
 
 public class CajeroModel {
-    private Map<String, Cuenta> cuentas;
-    private Cuenta cuentaActual;
+    private Map<String, Cuenta<String>> cuentas;
+    private Cuenta<String> cuentaActual;
 
      /**
      * Inicializa el modelo y carga cuentas de ejemplo en memoria.
@@ -32,11 +32,10 @@ public class CajeroModel {
      * Crea cuentas de ejemplo y las agrega al mapa interno.
      * Método privado usado sólo en inicialización.
      */
-
     private void inicializarCuentas(){
-        cuentas.put("12345",  new Cuenta("12345", "1111", 5000, "Juan Perez"));
-        cuentas.put("13579",  new Cuenta("13579", "2222", 100000, "Xochilt"));
-        cuentas.put("10009",  new Cuenta("10009", "3333",999999, "Leonardo"));
+        cuentas.put("12345",  new Cuenta<>("12345", "1111", 5000, "Juan Perez"));
+        cuentas.put("13579",  new Cuenta<>("13579", "2222", 100000, "Xochilt"));
+        cuentas.put("10009",  new Cuenta<>("10009", "3333", 999999, "Leonardo"));
     }
 
      /**
@@ -48,7 +47,7 @@ public class CajeroModel {
      */
 
     public boolean autenticar(String numeroCuenta, String pin){
-        Cuenta cuenta = cuentas.get(numeroCuenta);
+        Cuenta<String> cuenta = cuentas.get(numeroCuenta);
         if (cuenta != null && cuenta.validarPin(pin)) {
             this.cuentaActual = cuenta;
             return true;
@@ -63,7 +62,7 @@ public class CajeroModel {
      * @return la cuenta actual o {@code null} si no hay sesión iniciada
      */
 
-    public Cuenta getCuentaActual(){
+    public Cuenta<String> getCuentaActual(){
         return this.cuentaActual;
     }
 
@@ -120,7 +119,7 @@ public class CajeroModel {
     public boolean transferir(String numeroCuentaDestino, double cantidad){
         if (cuentaActual == null || cantidad <= 0) return false;
 
-        Cuenta destino = cuentas.get(numeroCuentaDestino);
+        Cuenta<String> destino = cuentas.get(numeroCuentaDestino);
         if (destino == null) return false; // no existe
         if (destino.getNumeroCuenta().equals(cuentaActual.getNumeroCuenta())) return false;
 
