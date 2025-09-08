@@ -9,20 +9,21 @@ package Models;
  * @version 1.0
  * @since 2025-09-04
  */
+
 public class Cuenta<T> {
 
-    private T numeroCuenta;  // Número de cuenta genérico (String, Integer, etc.)
-    private String pin;      // PIN de 4 dígitos
-    private double saldo;    // Saldo en la cuenta
-    private T titular;       // Titular de la cuenta (String u otro objeto)
+    private T numeroCuenta;
+    private String pin;      
+    private double saldo;    
+    private T titular;       
 
     /**
      * Crea una nueva cuenta con los datos especificados.
      *
-     * @param numeroCuenta número identificador de la cuenta
-     * @param pin          PIN de 4 dígitos
-     * @param saldo        saldo inicial
-     * @param titular      nombre o información del titular
+     * @param numeroCuenta
+     * @param pin         
+     * @param saldo      
+     * @param titular    
      */
     public Cuenta(T numeroCuenta, String pin, double saldo, T titular) {
         this.numeroCuenta = numeroCuenta;
