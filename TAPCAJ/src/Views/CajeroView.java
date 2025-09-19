@@ -41,7 +41,7 @@ public class CajeroView {
     * @return el PIN ingresado
     */
 
-   public String solcitarPin(){
+   public String solicitarPin(){
     System.out.println("Ingresa tu pin: ");
     return scanner.nextLine();
    }

@@ -2,230 +2,81 @@ package Controller;
 
 import Models.CajeroModel;
 import Views.CajeroView;
+import Strategy.*; // Importamos el nuevo paquete con las estrategias
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Controlador principal del cajero automático.
- * Gestiona la interacción entre la Vista y el Modelo: autenticación de usuarios,
- * menú principal y ejecución de operaciones (consultar saldo, retirar, depositar,
- * transferir, cambiar PIN y cerrar el sistema).
- *
- * @author Leonardo
- * @version 1.0
- * @since 2025-09-04
+ * Controlador principal del cajero automático. Refactorizado con el patrón Strategy.
  */
-
 public class CajeroController {
-   private CajeroModel model;
-   private CajeroView view;
-   private boolean sistemaActivo;
+    private CajeroModel model;
+    private CajeroView view;
+    private boolean sistemaActivo;
+    private Map<Integer, OperacionCajeroStrategy> operaciones; // Mapa para las estrategias
 
-/**
-    * Crea un controlador para el cajero con el modelo y la vista especificados.
-    *
-    * @param model el modelo que gestiona los datos de las cuentas
-    * @param view  la vista para interactuar con el usuario
-    */
+    public CajeroController(CajeroModel model, CajeroView view) {
+        this.model = model;
+        this.view = view;
+        this.sistemaActivo = true;
+        this.operaciones = new HashMap<>();
+        inicializarOperaciones(); // Nuevo método para cargar las estrategias
+    }
 
-   public CajeroController(CajeroModel model, CajeroView view){
-    this.model = model;
-    this.view = view;
-    this.sistemaActivo = true;
-   }
+    private void inicializarOperaciones() {
+        operaciones.put(1, new ConsultarSaldoStrategy());
+        operaciones.put(2, new RetiroStrategy());
+        operaciones.put(3, new DepositoStrategy());
+        operaciones.put(4, new TransferenciaStrategy()); // Necesitas crear esta clase
+        operaciones.put(5, new CambioPinStrategy()); // Necesitas crear esta clase
+        operaciones.put(6, new ConsultarPinStrategy()); // Necesitas crear esta clase
+        operaciones.put(7, new SalirStrategy()); // Necesitas crear esta clase
+    }
 
-   /**
-    * Inicia el flujo principal del sistema: muestra bienvenida, autentica al usuario
-    * y muestra el menú principal hasta que se salga del sistema.
-    */
+    public void iniciarSistema() {
+        view.mostrarBienvenida();
+        while (sistemaActivo) {
+            if (autenticarUsuario()) {
+                ejecutarMenuPrincipal();
+            } else {
+                view.mostrarMensaje("Credenciales incorrectas.");
+            }
+        }
+        view.mostrarMensaje("Gracias por usar nuestro cajero.");
+    }
 
-   public void iniciarSistema(){
-    view.mostrarBienvenida();
-    while (sistemaActivo) {
-        if (autenticarUsuario()) {
-            ejecutarMenuPrincipal();
-        }else{
-            view.mostrarMensaje("Credenciales incorrectas ");
+    private boolean autenticarUsuario() {
+        String numeroCuenta = view.solicitarNumeroCuenta();
+        String pin = view.solicitarPin();
+        return model.autenticar(numeroCuenta, pin);
+    }
+
+    private void ejecutarMenuPrincipal() {
+        boolean sesionActiva = true;
+        while (sesionActiva) {
+            view.mostrarMenuPrincipal(model.getCuentaActual().getTitular());
+            int opcion = view.leerOpcion();
+            
+            OperacionCajeroStrategy estrategia = operaciones.get(opcion);
+            if (estrategia != null) {
+                estrategia.ejecutar(this, model, view);
+                if (opcion == 7) {
+                    sesionActiva = false;
+                    sistemaActivo = false;
+                }
+            } else {
+                view.mostrarMensaje("Opción inválida, intenta de nuevo.");
+            }
         }
     }
-    view.mostrarMensaje("Gracias por usar nuestro cajero ");
-   }
 
-   /**
-    * Solicita credenciales a la vista y las valida contra el modelo.
-    *
-    * @return {@code true} si la autenticación fue exitosa; {@code false} en caso contrario
-    */
-
-   private boolean autenticarUsuario(){
-    String numeroCuenta = view.solicitarNumeroCuenta();
-    String pin = view.solcitarPin();
-    return model.autenticar(numeroCuenta, pin);
-   }
-
-   /**
-    * Muestra el menú principal y procesa opciones en un ciclo hasta que el usuario
-    * cierre la sesión o salga del sistema.
-    */
-
-   private void ejecutarMenuPrincipal(){
-     boolean sessionActiva = true;
-     while (sessionActiva) {
-        view.mostrarMenuPrincipal(model.getCuentaActual().getTitular());
-        int opcion = view.leerOpcion();
-        switch (opcion) {
-            case 1:
-            consultarSaldo();
-                
-            break;
-
-            case 2:
-            this.realizarRetiro();
-            break;
-
-            case 3:
-            this.realizarDeposito();
-            break;
-
-            case 4:
-            this.realizarTransferencia();
-            break;
-
-            case 5:
-            this.realizarCambioPin();
-            break;
-
-            case 6:
-            this.mostrarPin();
-            case 7:
-                this.cerrarSistema();
-                sessionActiva = false;   // salir del menú
-                sistemaActivo = false;   // apagar el sistema completo
-                break;
-
-            default:
-                view.mostrarMensaje("Opción inválida, intenta de nuevo");
-        }
-     }
- }
-
- /**
-  * Muestra el saldo de la cuenta actual.
-  */
-
- public void consultarSaldo(){
-    double saldo = model.consultarSaldo();
-    view.mostrarSaldo(saldo);
- }
-
-public void mostrarPin(){
-    String pin = model.consultarPIN();  // usar String, no double
-    if(pin != null){
-        view.mostrarMensaje("Tu PIN actual es: " + pin);
-    } else {
-        view.mostrarMensaje("No hay cuenta activa.");
+    // Los métodos para cada operación (consultarSaldo, realizarRetiro, etc.) se eliminan de aquí.
+    // Ahora residen en sus respectivas clases de estrategia.
+    
+    // Y para que no se pierda la funcionalidad de cerrar sistema
+    public void cerrarSistema() {
+        sistemaActivo = false;
+        view.cerrar();
     }
-}
-  /**
-  * Ejecuta la operación de retiro solicitando la cantidad a la vista y usando el modelo.
-  */
-
- public void realizarRetiro(){
-    double cantidad = view.solicitarCantidad("Retirar");
-    if (cantidad <= 0) {
-        view.mostrarMensaje("Error en la cantidad ");
-        return;
-    }
-
-    if (model.realizarRetiro(cantidad)) {
-        view.mostrarMensaje("Retiro exitoso de "+cantidad);
-    }else{
-        view.mostrarMensaje("Fondos insuficientes ");
-    }
-  }
-
-  /**
-  * Ejecuta la operación de depósito solicitando la cantidad a la vista y usando el modelo.
-  */
-
- public void realizarDeposito(){
-    double cantidad = view.solicitarCantidad("Deposito ");
-    if (cantidad <= 0) {
-        view.mostrarMensaje("Error en la cantidad ");
-        return;
-    }
-    if (model.realizarDeposito(cantidad)) {
-        view.mostrarMensaje("Deposito exitoso por la cantidad de "+cantidad);
-    }else{
-        view.mostrarMensaje("Fondos insuficientes ");
-    }
- }
-
- /**
-  * Ejecuta la operación de depósito solicitando la cantidad a la vista y usando el modelo.
-  */
-
-  public void realizarTransferencia(){
-    String cuentaDestino = view.solicitarCuentaDestino();
-
-    if (!model.cuentaExistente(cuentaDestino)) {
-        view.mostrarMensaje("La cuenta destino no existe");
-        return;
-    }
-
-    String cuentaOrigen = model.getCuentaActual().getNumeroCuenta();
-    if (cuentaOrigen.equals(cuentaDestino)) {
-        view.mostrarMensaje("No puedes transferir a la MISMA cuenta");
-        return;
-    }
-
-    double cantidad = view.solicitarCantidad("transferir");
-    if (cantidad <= 0) {
-        view.mostrarMensaje("Error en la cantidad ");
-        return;
-    }
-
-
-    boolean ok = model.transferir(cuentaDestino, cantidad);
-    if (ok) {
-        view.mostrarMensaje("Transferencia exitosa de $" + cantidad + " a la cuenta " + cuentaDestino);
-    } else {
-        view.mostrarMensaje("No se pudo completar la transferencia (fondos insuficientes o datos invalidos)");
-    }
-   }
-
-   /**
-    * Realiza el flujo de cambio de PIN: pide PIN actual, nuevo y confirmación,
-    * valida y delega la actualización al modelo.
-    */
-   
-public void realizarCambioPin(){
-    String pinActual = view.solcitarPin();
-    String nuevo = view.solicitarNuevoPin();
-    String confirm = view.solicitarConfirmacionPin();
-
-    if (!nuevo.equals(confirm)) {
-        view.mostrarMensaje("El nuevo PIN y la confirmación no coinciden.");
-        return;
-    }
-
-    if (!nuevo.matches("\\d{4}")) {
-        view.mostrarMensaje("El PIN debe contener exactamente 4 dígitos.");
-        return;
-    }
-
-    boolean actualizado = model.cambiarPinActual(pinActual, nuevo);
-    if (actualizado) {
-        view.mostrarMensaje("PIN actualizado correctamente. Ahora puedes confirmar en 'Ver PIN'.");
-    } else {
-        view.mostrarMensaje("Error: PIN actual incorrecto o no se pudo actualizar.");
-    }
-}
-
-
- /**
-  * Pide al modelo y la vista cerrar el sistema (cierres, recursos, etc.).
-  */
- 
- public void cerrarSistema(){
-    view.cerrar();
- }
 }
