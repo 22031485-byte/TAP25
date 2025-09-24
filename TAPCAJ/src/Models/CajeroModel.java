@@ -5,156 +5,138 @@ import java.util.Map;
 
 /**
  * Representa el modelo de datos del cajero automático.
- * Mantiene las cuentas en memoria (HashMap), la cuenta actualmente autenticada
- * y proporciona operaciones para consultar saldo, retirar, depositar,
- * transferir y cambiar PIN.
- * 
- * Nota: la persistencia no está implementada; todo se mantiene en memoria.
- * 
- * @author Leonardo
- * @version 1.0
- * @since 2025-09-04
+ * Refactorizado para manejar la inmutabilidad de la clase Cuenta.
  */
-
 public class CajeroModel {
     private Map<String, Cuenta> cuentas;
     private Cuenta cuentaActual;
 
-     /**
-     * Inicializa el modelo y carga cuentas de ejemplo en memoria.
-     */
-    public CajeroModel(){
+    public CajeroModel() {
         cuentas = new HashMap<>();
         inicializarCuentas();
     }
 
-    /**
-     * Crea cuentas de ejemplo y las agrega al mapa interno.
-     * Método privado usado sólo en inicialización.
-     */
+    private void inicializarCuentas() {
+        cuentas.put("12345", new Cuenta.Builder()
+            .conNumeroCuenta("12345")
+            .conPin("1111")
+            .conSaldo(5000)
+            .conTitular("Juan Perez")
+            .build());
 
-    private void inicializarCuentas(){
-        cuentas.put("12345",  new Cuenta("12345", "1111", 5000, "Juan Perez"));
-        cuentas.put("13579",  new Cuenta("13579", "2222", 100000, "Xochilt"));
-        cuentas.put("10009",  new Cuenta("10009", "3333",999999, "Leonardo"));
+        cuentas.put("13579", new Cuenta.Builder()
+            .conNumeroCuenta("13579")
+            .conPin("2222")
+            .conSaldo(100000)
+            .conTitular("Xochilt")
+            .build());
+
+        cuentas.put("10009", new Cuenta.Builder()
+            .conNumeroCuenta("10009")
+            .conPin("3333")
+            .conSaldo(999999)
+            .conTitular("Leonardo")
+            .build());
     }
 
-     /**
-     * Intenta autenticar con número de cuenta y PIN.
-     *
-     * @param numeroCuenta número de la cuenta
-     * @param pin          PIN a validar
-     * @return {@code true} si la autenticación es correcta y la cuenta queda como actual
-     */
-
-    public boolean autenticar(String numeroCuenta, String pin){
+    public boolean autenticar(String numeroCuenta, String pin) {
         Cuenta cuenta = cuentas.get(numeroCuenta);
         if (cuenta != null && cuenta.validarPin(pin)) {
             this.cuentaActual = cuenta;
             return true;
-            
         }
         return false;
     }
 
-      /**
-     * Devuelve la cuenta actualmente autenticada.
-     *
-     * @return la cuenta actual o {@code null} si no hay sesión iniciada
-     */
-
-    public Cuenta getCuentaActual(){
+    public Cuenta getCuentaActual() {
         return this.cuentaActual;
     }
 
-    
-    /**
-     * Consulta el saldo de la cuenta actual.
-     *
-     * @return saldo actual o 0 si no hay cuenta autenticada
-     */
-
-    public double consultarSaldo(){
-        return this.cuentaActual != null ? cuentaActual.getSaldo():0;
+    public double consultarSaldo() {
+        return this.cuentaActual != null ? cuentaActual.getSaldo() : 0;
     }
 
-    public String consultarPIN(){
-    return this.cuentaActual != null ? cuentaActual.getPin() : null;
-}
-
-    /**
-     * Realiza un retiro sobre la cuenta actual.
-     *
-     * @param cantidad monto a retirar
-     * @return {@code true} si el retiro fue exitoso; {@code false} en caso contrario
-     */
-
-    public boolean realizarRetiro(double cantidad){
-        return cuentaActual != null && cuentaActual.retirar(cantidad);
+    public String consultarPIN() {
+        return this.cuentaActual != null ? cuentaActual.getPin() : null;
     }
 
     /**
-     * Realiza un depósito sobre la cuenta actual.
-     *
-     * @param cantidad monto a depositar
-     * @return {@code true} si el depósito fue exitoso; {@code false} en caso contrario
+     * Realiza un retiro sobre la cuenta actual, actualizando la referencia si es exitoso.
      */
-
-    public boolean realizarDeposito(double cantidad){
-        if (cuentaActual != null && cantidad > 0) {
-            cuentaActual.depositar(cantidad);
+    public boolean realizarRetiro(double cantidad) {
+        if (cuentaActual == null) {
+            return false;
+        }
+        // Llama al método retirar de Cuenta y guarda la nueva instancia
+        Cuenta cuentaActualizada = cuentaActual.retirar(cantidad);
+        if (cuentaActualizada != cuentaActual) { // Comprueba si el retiro fue exitoso
+            cuentas.put(cuentaActualizada.getNumeroCuenta(), cuentaActualizada);
+            cuentaActual = cuentaActualizada;
             return true;
-            
         }
         return false;
     }
 
-     /**
-     * Realiza una transferencia de la cuenta actual a la cuenta destino.
-     *
-     * @param numeroCuentaDestino número de la cuenta destino
-     * @param cantidad            monto a transferir
-     * @return {@code true} si la transferencia fue exitosa; {@code false} en caso contrario
+    /**
+     * Realiza un depósito sobre la cuenta actual, actualizando la referencia si es exitoso.
      */
+    public boolean realizarDeposito(double cantidad) {
+        if (cuentaActual == null) {
+            return false;
+        }
+        // Llama al método depositar de Cuenta y guarda la nueva instancia
+        Cuenta cuentaActualizada = cuentaActual.depositar(cantidad);
+        if (cuentaActualizada != cuentaActual) { // Comprueba si el depósito fue exitoso
+            cuentas.put(cuentaActualizada.getNumeroCuenta(), cuentaActualizada);
+            cuentaActual = cuentaActualizada;
+            return true;
+        }
+        return false;
+    }
 
-    public boolean transferir(String numeroCuentaDestino, double cantidad){
+    /**
+     * Realiza una transferencia. Ahora maneja la inmutabilidad de ambas cuentas.
+     */
+    public boolean transferir(String numeroCuentaDestino, double cantidad) {
         if (cuentaActual == null || cantidad <= 0) return false;
 
         Cuenta destino = cuentas.get(numeroCuentaDestino);
-        if (destino == null) return false; // no existe
+        if (destino == null) return false;
         if (destino.getNumeroCuenta().equals(cuentaActual.getNumeroCuenta())) return false;
 
-        // Retira primero; si hay fondos, deposita en destino
-        if (cuentaActual.retirar(cantidad)) {
-            destino.depositar(cantidad);
+        // Intentar retirar de la cuenta actual
+        Cuenta cuentaOrigenActualizada = cuentaActual.retirar(cantidad);
+        if (cuentaOrigenActualizada != cuentaActual) {
+            // Si el retiro es exitoso, depositar en la cuenta de destino
+            Cuenta cuentaDestinoActualizada = destino.depositar(cantidad);
+            
+            // Actualizar ambas cuentas en el mapa
+            cuentas.put(cuentaOrigenActualizada.getNumeroCuenta(), cuentaOrigenActualizada);
+            cuentas.put(cuentaDestinoActualizada.getNumeroCuenta(), cuentaDestinoActualizada);
+            
+            // Actualizar la referencia a la cuenta actual
+            cuentaActual = cuentaOrigenActualizada;
             return true;
         }
         return false;
     }
 
-     /**
-     * Cambia el PIN de la cuenta actualmente autenticada si el PIN actual coincide.
-     *
-     * @param pinActual PIN actual
-     * @param nuevoPin  nuevo PIN deseado
-     * @return {@code true} si se actualizó correctamente; {@code false} en caso contrario
+    /**
+     * Cambia el PIN de la cuenta actual, actualizando la referencia si es exitoso.
      */
-    
-    public boolean cambiarPinActual(String pinActual, String nuevoPin){
+    public boolean cambiarPinActual(String pinActual, String nuevoPin) {
         if (cuentaActual == null) return false;
-        return cuentaActual.cambiarPin(pinActual, nuevoPin);
+        
+        Cuenta cuentaActualizada = cuentaActual.cambiarPin(pinActual, nuevoPin);
+        if (cuentaActualizada != cuentaActual) {
+            cuentas.put(cuentaActualizada.getNumeroCuenta(), cuentaActualizada);
+            cuentaActual = cuentaActualizada;
+            return true;
+        }
+        return false;
     }
 
-   /**
-     * Indica si una cuenta con el número dado existe en el sistema.
-     *
-     * @param numeroCuenta número de cuenta a buscar
-     * @return {@code true} si existe; {@code false} en caso contrario
-     */
-
-    public boolean cuentaExistente(String numeroCuenta){
+    public boolean cuentaExistente(String numeroCuenta) {
         return cuentas.containsKey(numeroCuenta);
     }
-
-
 }

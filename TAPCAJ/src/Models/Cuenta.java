@@ -1,111 +1,107 @@
 package Models;
 
-/**
- * Representa una cuenta bancaria simple con número, PIN, saldo y titular.
- * Proporciona operaciones básicas: validar PIN, retirar, depositar y cambiar PIN.
- * 
- * @author Leonardo
- * @version 1.0
- * @since 2025-09-04
- */
-
 public class Cuenta {
 
-    private String numeroCuenta;
+    private final String numeroCuenta;
+    private final String pin;
+    private final double saldo;
+    private final String titular;
 
-    private String pin;
-
-    private double saldo;
-
-    private String titular;
-
-     /**
-     * Crea una nueva cuenta con los datos especificados.
-     *
-     * @param numeroCuenta número identificador de la cuenta
-     * @param pin          PIN de 4 dígitos (en este proyecto se almacena en texto)
-     * @param saldo        saldo inicial
-     * @param titular      nombre del titular
-     */
-
-
-    public Cuenta(String numeroCuenta, String pin, double saldo, String titular){
-
-        this.numeroCuenta = numeroCuenta;
-        this.pin = pin;
-        this.saldo = saldo;
-        this.titular = titular;
-        
+    // 1. Constructor privado para forzar el uso del Builder
+    private Cuenta(Builder builder) {
+        this.numeroCuenta = builder.numeroCuenta;
+        this.pin = builder.pin;
+        this.saldo = builder.saldo;
+        this.titular = builder.titular;
     }
 
-
-     /** @return número de cuenta */
-    public String getNumeroCuenta() { return numeroCuenta; }
-
-    /** @return PIN (texto) */
-    public String getPin() { return pin; }
-
-    /** @return saldo actual */
-    public double getSaldo() { return saldo; }
-
-    /** @return titular de la cuenta */
-    public String getTitular() { return titular; }
-
-    /**
-     * Valida que el PIN ingresado coincida con el almacenado.
-     *
-     * @param pinIngresado PIN a validar
-     * @return {@code true} si coincide; {@code false} en caso contrario
-     */
-
-    public boolean validarPin(String pinIngresado){
+    // Getters y otros métodos...
+    public String getNumeroCuenta() { return numeroCuenta;
+     }
+    public String getPin() { return pin;
+     }
+    public double getSaldo() { return saldo;
+     }
+    public String getTitular() { return titular;
+     }
+    
+    public boolean validarPin(String pinIngresado) {
         return this.pin.equals(pinIngresado);
     }
-
-     /**
-     * Intenta retirar una cantidad del saldo.
-     *
-     * @param cantidad monto a retirar (debe ser positivo y <= saldo)
-     * @return {@code true} si el retiro fue exitoso; {@code false} en caso contrario
-     */
-
-    public boolean retirar(double cantidad){
+    
+    // NOTA: Los métodos que modifican el estado (retirar, depositar, cambiarPin)
+    // ahora deben ser manejados de forma diferente si el objeto es inmutable.
+    // Un enfoque es devolver un nuevo objeto con el estado modificado.
+    
+    public Cuenta retirar(double cantidad) {
         if (cantidad > 0 && cantidad <= this.saldo) {
-            saldo -= cantidad;
-            return true; 
+            return new Cuenta.Builder()
+                .conNumeroCuenta(this.numeroCuenta)
+                .conPin(this.pin)
+                .conSaldo(this.saldo - cantidad)
+                .conTitular(this.titular)
+                .build();
         }
-        return false;
+        return this; // Devuelve el mismo objeto si el retiro falla
     }
-
-     /**
-     * Cambia el PIN de la cuenta si el PIN actual coincide y el nuevo PIN cumple
-     * la validación (aquí: exactamente 4 dígitos numéricos).
-     *
-     * @param pinActual PIN actual del usuario
-     * @param nuevoPin  nuevo PIN deseado (debe coincidir con la validación)
-     * @return {@code true} si el cambio se realizó; {@code false} en caso contrario
-     */
-
-    public boolean cambiarPin(String pinActual, String nuevoPin){
-    if (pinActual == null || nuevoPin == null) return false;
-
-    if (!this.pin.equals(pinActual)) return false;
-
-    if (!nuevoPin.matches("\\d{4}")) return false;
-    this.pin = nuevoPin;
-    return true;
-}
-
-/**
-     * Deposita una cantidad en la cuenta si es positiva.
-     *
-     * @param cantidad monto a depositar
-     */
-
-    public void depositar(double cantidad){
+    
+    public Cuenta depositar(double cantidad) {
         if (cantidad > 0) {
-            saldo += cantidad;
+            return new Cuenta.Builder()
+                .conNumeroCuenta(this.numeroCuenta)
+                .conPin(this.pin)
+                .conSaldo(this.saldo + cantidad)
+                .conTitular(this.titular)
+                .build();
+        }
+        return this;
+    }
+    
+    public Cuenta cambiarPin(String pinActual, String nuevoPin) {
+        if (pinActual == null || nuevoPin == null || !this.pin.equals(pinActual) || !nuevoPin.matches("\\d{4}")) {
+            return this;
+        }
+        return new Cuenta.Builder()
+            .conNumeroCuenta(this.numeroCuenta)
+            .conPin(nuevoPin)
+            .conSaldo(this.saldo)
+            .conTitular(this.titular)
+            .build();
+    }
+    
+    // 2. Clase Builder estática y anidada
+    public static class Builder {
+        private String numeroCuenta;
+        private String pin;
+        private double saldo = 0.0; // Valor por defecto
+        private String titular;
+
+        public Builder conNumeroCuenta(String numeroCuenta) {
+            this.numeroCuenta = numeroCuenta;
+            return this;
+        }
+
+        public Builder conPin(String pin) {
+            this.pin = pin;
+            return this;
+        }
+
+        public Builder conSaldo(double saldo) {
+            this.saldo = saldo;
+            return this;
+        }
+
+        public Builder conTitular(String titular) {
+            this.titular = titular;
+            return this;
+        }
+
+        // 3. Método build() para construir el objeto final
+        public Cuenta build() {
+            if (numeroCuenta == null || pin == null || titular == null) {
+                throw new IllegalStateException("Número de cuenta, PIN y titular son campos obligatorios.");
+            }
+            return new Cuenta(this);
         }
     }
-
 }
